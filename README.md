@@ -59,6 +59,12 @@ Route::get('/', function () {
 });
 ```
 
+## Command
+The command is also available to clear the template cache
+```bash
+$ php artisan blitz:clear
+```
+
 Method ```apply``` returns ```Illuminate\Http\Response```, also method ```make``` is alias for ```apply```
 
 ### Exceptions
