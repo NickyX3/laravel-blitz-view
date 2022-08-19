@@ -116,16 +116,18 @@ class BlitzTemplateCacheFile implements BlitzTemplateCacheInterface
             self::$compiled_folder  = config('blitz.compiled_folder', 'blitz_compiled');
             self::$compiled_path    = storage_path() . '/' . self::$compiled_folder . '/';
         }
-        $directory        = new \DirectoryIterator(rtrim(self::$compiled_path,DIRECTORY_SEPARATOR));
-        if ($directory->isDir() && $directory->isWritable() ) {
-            foreach ($directory as $item) {
-                $file_name = $item->getFilename();
-                if ( !in_array($file_name, ['.', '..']) ) {
-                    self::deleteFileInCache($item);
+        if ( file_exists(self::$compiled_path) ) {
+            $directory = new \DirectoryIterator(rtrim(self::$compiled_path, DIRECTORY_SEPARATOR));
+            if ($directory->isDir() && $directory->isWritable()) {
+                foreach ($directory as $item) {
+                    $file_name = $item->getFilename();
+                    if (!in_array($file_name, ['.', '..'])) {
+                        self::deleteFileInCache($item);
+                    }
                 }
+            } else {
+                throw new FileNotFoundException('Path ' . $directory->getFilename() . ' is not Dir or is not Writable');
             }
-        } else {
-            throw new FileNotFoundException('Path ' . $directory->getFilename() . ' is not Dir or is not Writable');
         }
     }
 
