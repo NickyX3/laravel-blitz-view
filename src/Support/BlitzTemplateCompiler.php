@@ -14,6 +14,7 @@ class BlitzTemplateCompiler
     protected static array  $templates;
     protected static array  $namespace_finder;
     protected static string $cacheClass;
+    protected static bool   $cacheEnabled;
     protected static array  $statistic  = ['from_cache'=>0,'from_disk'=>0,'gets'=>0,'compiled'=>0];
 
     /**
@@ -23,6 +24,7 @@ class BlitzTemplateCompiler
     {
         self::$templates_folder = config('blitz.templates_folder','blitz_view');
         self::$namespace_finder = config('blitz.namespace_finder',[]);
+        self::$cacheEnabled     = config('blitz.cache_enabled',false);
         self::$templates_path   = resource_path() . '/' . self::$templates_folder . '/';
 
         self::$cacheClass       = self::getCacheClass();
@@ -41,7 +43,9 @@ class BlitzTemplateCompiler
             // recompile source
             self::$statistic['compiled']++;
             $compiled_template = self::getCompiled($source);
-            $compiled->setTemplateCache($compiled_template,self::$templates_tree);
+            if ( self::$cacheEnabled === true ) {
+                $compiled->setTemplateCache($compiled_template, self::$templates_tree);
+            }
             return $compiled_template;
         }
     }
