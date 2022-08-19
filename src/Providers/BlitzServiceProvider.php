@@ -2,7 +2,7 @@
 
 namespace NickyX3\Blitz\Providers;
 
-use NickyX3\Blitz\BlitzView;
+use NickyX3\Blitz\BlitzMaker;
 use Illuminate\Support\ServiceProvider;
 use NickyX3\Blitz\Console\Commands\BlitzClearCache;
 
@@ -14,7 +14,7 @@ class BlitzServiceProvider extends ServiceProvider
             __DIR__ . '/../config/blitz.php', 'blitz'
         );
         $this->app->bind('blitz',function(){
-            return new BlitzView();
+            return new BlitzMaker();
         });
     }
 

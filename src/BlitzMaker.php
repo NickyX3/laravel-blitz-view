@@ -9,7 +9,7 @@ use NickyX3\Blitz\Exceptions\BlitzException;
 use NickyX3\Blitz\Exceptions\BlitzHandlerException;
 use NickyX3\Blitz\Support\BlitzTemplateLoader;
 
-class BlitzView extends \Blitz
+class BlitzMaker extends \Blitz
 {
     protected string            $templates_path;
     protected string            $templates_folder       = 'blitz_view';
@@ -59,9 +59,9 @@ class BlitzView extends \Blitz
         self::$template_content     = BlitzTemplateLoader::load(self::$template_name);
 
         $callbackException = function ($error_code, $error_message) {
-            $template_content   = BlitzView::getTemplateContent();
-            $template_name      = BlitzView::getTemplateName();
-            $template_data      = json_encode(BlitzView::getData());
+            $template_content   = BlitzMaker::getTemplateContent();
+            $template_name      = BlitzMaker::getTemplateName();
+            $template_data      = json_encode(BlitzMaker::getData());
             $separator = PHP_EOL.'<!-- SEPARATOR -->'.PHP_EOL;
             throw new BlitzHandlerException($error_message.$separator.$template_name.$separator.$template_data.$separator.$template_content, $error_code);
         };
@@ -75,6 +75,15 @@ class BlitzView extends \Blitz
         self::$response = new Response(self::$rendered);
 
         return self::$response;
+    }
+
+    /**
+     * @throws BlitzException
+     * @throws FileNotFoundException
+     */
+    public function make(string $template, array $data = []):Response
+    {
+        return $this->apply($template,$data);
     }
 
     public static function getData ():array
