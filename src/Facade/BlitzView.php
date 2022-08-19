@@ -9,6 +9,7 @@ use NickyX3\Blitz\BlitzMaker;
 
 /**
  * @method static Response apply(string $template, array $data)
+ * @alias apply
  *
  * @see BlitzMaker
  */
