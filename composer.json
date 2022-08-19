@@ -24,7 +24,7 @@
                 "NickyX3\\Blitz\\Providers\\BlitzServiceProvider"
             ],
             "aliases": {
-                "Blitz": "NickyX3\\Blitz\\Facade\\BlitzFacade"
+                "BlitzView": "NickyX3\\Blitz\\Facade\\BlitzFacade"
             }
         }
     }
