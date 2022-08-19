@@ -1,0 +1,31 @@
+{
+    "name": "nickyx3/blitz",
+    "description": "Laravel Blitz View (Blitz Extension TemplateEngine by Alexey Rybak, https://github.com/alexeyrybak/blitz)",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "NickyX3\\Blitz\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=8.0"
+    },
+    "authors": [
+        {
+            "name": "NickyX3",
+            "email": "nickyx3@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "extra": {
+        "laravel": {
+            "providers": [
+                "NickyX3\\Blitz\\Providers\\BlitzServiceProvider"
+            ],
+            "aliases": {
+                "Blitz": "NickyX3\\Blitz\\Facade\\BlitzFacade"
+            }
+        }
+    }
+}
