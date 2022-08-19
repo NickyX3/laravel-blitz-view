@@ -29,10 +29,10 @@ class BlitzServiceProvider extends ServiceProvider
             __DIR__.'/../config/blitz.php' => config_path('blitz.php'),
         ]);
         $this->publishes([
-            __DIR__.'/../resources/blitz_views' => resource_path('blitz_views/example'),
+            __DIR__.'/../resources/blitz_views/' => resource_path('blitz_views/example/'),
         ]);
         $this->publishes([
-            __DIR__.'/../public/exception.css' => public_path('css/nickyx3/blitz'),
-        ], 'public');
+            __DIR__.'/../public/exception.css' => public_path('css/nickyx3/blitz/exception.css'),
+        ]);
     }
 }
