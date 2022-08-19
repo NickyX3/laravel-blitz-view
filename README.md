@@ -37,14 +37,14 @@ Default configuration
 ```
 
 ### Config parameters
-- templates_folder - where source templates relative to laravel resources folder
-- cache_type - 'file' or 'redis', default 'file'
-- cache_enabled - enabled or disabled caching, default 'false'
-- compiled_folder - where store cache relative to laravel storage folder, also if cache type 'redis' redis key 
+- **templates_folder** - where source templates relative to laravel resources folder
+- **cache_type** - 'file' or 'redis', default 'file'
+- **cache_enabled** - enabled or disabled caching, default 'false'
+- **compiled_folder** - where store cache relative to laravel storage folder, also if cache type 'redis' redis key 
   is full path to compiled file in filesystem like 'file' cache type
-- scope_lookup_limit - blitz extension ini parameter
-- php_callbacks_first - blitz extension ini parameter
-- namespace_finder - in which namespace the template processor will look for classes specified in templates as callbacks.
+- **scope_lookup_limit** - blitz extension ini parameter
+- **php_callbacks_first** - blitz extension ini parameter
+- **namespace_finder** - in which namespace the template processor will look for classes specified in templates as callbacks.
   For example, you wrote in the template ```Lang::get('DefaultTitle')```. The processor will find the first matching class in these 
   namespaces and expand it into a fully qualified class name with a namespace (```Illuminate\Support\Facades\Lang::get('DefaultTitle')```). 
   If the class is not found, then the callback will be deleted.
