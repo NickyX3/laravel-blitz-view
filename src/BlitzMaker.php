@@ -80,6 +80,7 @@ class BlitzMaker extends \Blitz
     /**
      * @throws BlitzException
      * @throws FileNotFoundException
+     * @alias  apply()
      */
     public function make(string $template, array $data = []):Response
     {
