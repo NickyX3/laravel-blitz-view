@@ -1,9 +1,11 @@
 <?php
 
 namespace NickyX3\Blitz\Facade;
-use NickyX3\Blitz\BlitzMaker;
+
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Facade;
+
+use NickyX3\Blitz\BlitzMaker;
 
 /**
  * @method static Response apply(string $template, array $data)

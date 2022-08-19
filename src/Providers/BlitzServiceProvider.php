@@ -2,8 +2,9 @@
 
 namespace NickyX3\Blitz\Providers;
 
-use NickyX3\Blitz\BlitzMaker;
 use Illuminate\Support\ServiceProvider;
+
+use NickyX3\Blitz\BlitzMaker;
 use NickyX3\Blitz\Console\Commands\BlitzClearCache;
 
 class BlitzServiceProvider extends ServiceProvider
