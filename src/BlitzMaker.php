@@ -58,6 +58,8 @@ class BlitzMaker extends \Blitz
         self::$data                 = $data;
         self::$template_content     = BlitzTemplateLoader::load(self::$template_name);
 
+        self::injectConditionCallbacks();
+
         $callbackException = function ($error_code, $error_message) {
             $template_content   = BlitzMaker::getTemplateContent();
             $template_name      = BlitzMaker::getTemplateName();
@@ -68,7 +70,7 @@ class BlitzMaker extends \Blitz
 
         set_error_handler($callbackException, E_ERROR|E_WARNING);
         $this->load(self::$template_content);
-        $parsed_content = $this->parse($data);
+        $parsed_content = $this->parse(self::$data);
         self::$rendered = $parsed_content;
         restore_error_handler();
 
@@ -111,5 +113,14 @@ class BlitzMaker extends \Blitz
 
     public static function __callStatic($name, $arguments) {
         dump ("Static method call '$name' " . implode(', ', $arguments));
+    }
+
+    protected static function injectConditionCallbacks ():void
+    {
+        $callbacks = BlitzTemplateLoader::getCC(self::$template_name);
+        foreach ($callbacks as $var_name=>$callback_code) {
+            self::$template_content = str_replace($callback_code,'$callback_'.$var_name,self::$template_content);
+            self::$data['callback_'.$var_name] =  eval("return $callback_code;");
+        }
     }
 }

@@ -93,6 +93,42 @@ Also added Blade ```@csrf``` helper support, in HTML comment tag like ```<!-- @c
 <!-- @endsection -->
 ```
 
+### How callbacks works?
+- Some Blitz directives like inline conditions with callbacks will be transform info full version, because callbacks not work in conditions
+```html
+{{ if($title,$title,Lang::get('DefaultTitle')) }}
+```
+transform into
+```html
+{{ IF $title }}{{ $title }}{{ ELSE }}{{ Illuminate\Support\Facades\Lang::get('DefaultTitle') }}{{ END if-title }}
+```
+- Full Blitz IF condition wth callback like this
+```html
+{{ IF App::currentLocale()=='en' }}
+    currentLocale: {{ App::currentLocale() }}
+{{ ELSE }}
+    currentLocale not 'en'
+{{ END }}
+```
+will be transformed to this code in cached template
+```html
+{{ IF Illuminate\Support\Facades\App::currentLocale()=='en' }}
+    currentLocale: {{ Illuminate\Support\Facades\App::currentLocale() }}
+{{ ELSE }}
+    currentLocale not 'en'
+{{ END }}
+```
+but after get "compiled" template all callbacks like that will be converted to variables on the fly
+```html
+{{ IF $callback_83e69f8a22cc276d050d93f63c89a290=='en' }}
+    currentLocale: {{ $callback_83e69f8a22cc276d050d93f63c89a290 }}
+{{ ELSE }}
+    currentLocale not 'en'
+{{ END }}
+```
+where variable ```$callback_83e69f8a22cc276d050d93f63c89a290``` will be set result of eval ```Illuminate\Support\Facades\App::currentLocale();```.
+If there are callbacks in the template that match the callbacks in the condition, they will also be replaced with this variable in order not to call the callback multiple times
+
 ## Have fun!
 
 Perhaps the code is not very good, I'm new to Laravel and also very poorly documented because I'm going on vacation. Maybe I'll make detailed comments later :-)

@@ -13,6 +13,7 @@ class BlitzTemplateCompiler
     protected static array  $templates_tree;
     protected static array  $templates;
     protected static array  $namespace_finder;
+    protected static array  $conditions_callbacks = [];
     protected static string $cacheClass;
     protected static bool   $cacheEnabled;
     protected static array  $statistic  = ['from_cache'=>0,'from_disk'=>0,'gets'=>0,'compiled'=>0];
@@ -48,6 +49,10 @@ class BlitzTemplateCompiler
             }
             return $compiled_template;
         }
+    }
+
+    public static function getConditionsCallbacks (string $template_file_path):array {
+        return self::$conditions_callbacks[$template_file_path];
     }
 
     public static function getStatistic ():array
@@ -289,6 +294,32 @@ class BlitzTemplateCompiler
         return '';
     }
 
+    protected static function processConditionCallbacks (string $content):string {
+        $pattern = "/\{\{\sIF\s([^:\s]+::[^\(]+\([^\)]*\))[^\}]+\}\}/umU";
+        return preg_replace_callback($pattern,'self::replace_condition_callback',$content);
+    }
+
+    protected static function replace_condition_callback (array $match ):string {
+        $output = '';
+        if ( count($match) === 2 ) {
+            $where_replace  = $match[0];
+            $callable       = $match[1];
+            [$class,$method]    = explode('::',$callable,2);
+            if ( !in_array($class,['php','this']) ) {
+                $qualifiedClass = self::getFullQualifiedClass($class);
+                if ($qualifiedClass !== '') {
+                    $output     = str_replace($class . '::' . $method, $qualifiedClass . '::' . $method, $where_replace);
+                    $code       = $qualifiedClass . '::' . $method;
+                    $code_key   = md5($code);
+                    self::$conditions_callbacks[self::$current_file][$code_key] = $code;
+                }
+            } else {
+                $output = str_replace($class . '::' . $method, $class . '::' . $method, $where_replace);
+            }
+        }
+        return $output;
+    }
+
     protected static function processHelpers (string $content):string
     {
         // patterns
@@ -300,9 +331,7 @@ class BlitzTemplateCompiler
         $content_processed  = preg_replace_callback($pattern_conditions,'self::replace_inline_condition',$content_processed);
         $content_processed  = preg_replace_callback($pattern_conditions_inline_with_method,'self::replace_blitz_inline_conditions',$content_processed);
 
-        // @csrf
-        $content_processed  = str_replace('<!-- @csrf -->','@csrf',$content_processed);
-        return str_replace('@csrf','<input type="hidden" name="_token" value="{{ csrf_token() }}" />',$content_processed);
+        return self::processConditionCallbacks($content_processed);
     }
 
     protected static function replace_blitz_inline_conditions (array $match):string
@@ -336,9 +365,13 @@ class BlitzTemplateCompiler
             $where_replace  = $match[0];
             $callable       = $match[1];
             [$class,$method]    = explode('::',$callable,2);
-            $qualifiedClass = self::getFullQualifiedClass($class);
-            if ( $qualifiedClass !== '' ) {
-                $output = str_replace($class.'::'.$method,$qualifiedClass.'::'.$method,$where_replace);
+            if ( !in_array($class,['php','this']) ) {
+                $qualifiedClass = self::getFullQualifiedClass($class);
+                if ($qualifiedClass !== '') {
+                    $output = str_replace($class . '::' . $method, $qualifiedClass . '::' . $method, $where_replace);
+                }
+            } else {
+                $output = str_replace($class . '::' . $method, $class . '::' . $method, $where_replace);
             }
         }
         return $output;
