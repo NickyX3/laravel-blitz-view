@@ -291,7 +291,7 @@ class BlitzTemplateCompiler
 
     protected static function processHelpers (string $content):string
     {
-        // патерны
+        // patterns
         $pattern_classes                        = "/\{\{.*([^:\s,]+::[^\(]+\([^\)]*\))\)*\s\}\}/umU";
         $pattern_conditions                     = "/\{\{\s([^\?]+)\?+\s([^:\s,]+::[^\(]+\([^\)]*\))\)*\s\}\}/umU";
         $pattern_conditions_inline_with_method  = "/\{\{\sif\(([^,]+),([^,]+),([^:\s,]+::[^\(]+\([^\)]*\))\)\s\}\}/umU";
@@ -300,7 +300,9 @@ class BlitzTemplateCompiler
         $content_processed  = preg_replace_callback($pattern_conditions,'self::replace_inline_condition',$content_processed);
         $content_processed  = preg_replace_callback($pattern_conditions_inline_with_method,'self::replace_blitz_inline_conditions',$content_processed);
 
-        return $content_processed;
+        // @csrf
+        $content_processed  = str_replace('<!-- @csrf -->','@csrf',$content_processed);
+        return str_replace('@csrf','<input type="hidden" name="_token" value="{{ csrf_token() }}" />',$content_processed);
     }
 
     protected static function replace_blitz_inline_conditions (array $match):string
