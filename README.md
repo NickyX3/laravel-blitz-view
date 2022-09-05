@@ -72,7 +72,7 @@ This exception will be rendered if your env ```APP_DEBUG=true```, otherwise simp
 
 ## Template Syntax Features
 Unlike Blitz, which can only do include, template "up" inheritance works like in Blade Engine. 
-The following Blade directives are supported: ```@yield```, ```@extends```, ```@section``` and ```@endsection``` placed in an HTML comment tag
+The following Blade directives are supported: ```@yield```, ```@extends```, ```@section``` and ```@endsection``` placed in an HTML comment tag.
 Also added Blade ```@csrf``` helper support, in HTML comment tag like ```<!-- @csrf -->```or direct ```@csrf```
 
 ### Examples
