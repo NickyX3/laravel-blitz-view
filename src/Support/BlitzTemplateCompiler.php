@@ -331,6 +331,10 @@ class BlitzTemplateCompiler
         $content_processed  = preg_replace_callback($pattern_conditions,'self::replace_inline_condition',$content_processed);
         $content_processed  = preg_replace_callback($pattern_conditions_inline_with_method,'self::replace_blitz_inline_conditions',$content_processed);
 
+        $csrf_replace       = '<input type="hidden" name="_token" value="{{ csrf_token() }}" />';
+        $content_processed  = str_replace('<!-- @csrf -->',$csrf_replace,$content_processed);
+        $content_processed  = str_replace('@csrf',$csrf_replace,$content_processed);
+
         return self::processConditionCallbacks($content_processed);
     }
 
