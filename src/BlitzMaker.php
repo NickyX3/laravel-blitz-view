@@ -9,7 +9,7 @@ use NickyX3\Blitz\Exceptions\BlitzException;
 use NickyX3\Blitz\Exceptions\BlitzHandlerException;
 use NickyX3\Blitz\Support\BlitzTemplateLoader;
 
-class BlitzMaker extends \Blitz
+class BlitzMaker
 {
     protected string            $templates_path;
     protected string            $templates_folder       = 'blitz_view';
@@ -20,6 +20,7 @@ class BlitzMaker extends \Blitz
     protected static array      $data                   = [];
     protected static string     $rendered               = '';
     protected static Response   $response;
+    protected \Blitz            $blitzObject;
 
     /**
      * @throws BlitzException|FileNotFoundException
@@ -37,7 +38,6 @@ class BlitzMaker extends \Blitz
             ini_set('blitz.scope_lookup_limit',$this->scope_limit);
             ini_set('blitz.php_callbacks_first', $this->php_callbacks_first);
 
-            parent::__construct();
             if ( !is_null($template) && !is_null($data) ) {
                 self::$template_name  = $template;
                 self::$data           = $data;
@@ -69,8 +69,9 @@ class BlitzMaker extends \Blitz
         };
 
         set_error_handler($callbackException, E_ERROR|E_WARNING);
-        $this->load(self::$template_content);
-        $parsed_content = $this->parse(self::$data);
+        $this->blitzObject  = new \Blitz();
+        $this->blitzObject->load(self::$template_content);
+        $parsed_content = $this->blitzObject->parse(self::$data);
         self::$rendered = $parsed_content;
         restore_error_handler();
 
@@ -87,6 +88,11 @@ class BlitzMaker extends \Blitz
     public function make(string $template, array $data = []):Response
     {
         return $this->apply($template,$data);
+    }
+
+    public function getBlitzObj():\Blitz
+    {
+        return $this->blitzObject;
     }
 
     public static function getData ():array
