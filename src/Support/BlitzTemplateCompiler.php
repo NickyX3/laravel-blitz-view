@@ -14,6 +14,7 @@ class BlitzTemplateCompiler
     protected static array  $templates;
     protected static array  $namespace_finder;
     protected static array  $conditions_callbacks = [];
+    protected static array  $callableHelpers      = [];
     protected static string $cacheClass;
     protected static bool   $cacheEnabled;
     protected static array  $statistic  = ['from_cache'=>0,'from_disk'=>0,'gets'=>0,'compiled'=>0];
@@ -52,6 +53,14 @@ class BlitzTemplateCompiler
     }
 
     public static function getConditionsCallbacks (string $template_file_path):array {
+        if ( isset(self::$callableHelpers[$template_file_path]) ) {
+            foreach (self::$callableHelpers[$template_file_path] as $code_key=>$callableHelpers) {
+                if ( !isset(self::$conditions_callbacks[$template_file_path][$code_key]) && count($callableHelpers) > 1 ) {
+                    // add to callbacks
+                    self::$conditions_callbacks[$template_file_path][$code_key] = $callableHelpers[0];
+                }
+            }
+        }
         return self::$conditions_callbacks[$template_file_path];
     }
 
@@ -364,10 +373,10 @@ class BlitzTemplateCompiler
         $pattern_single_helpers                 = "/\{\{\s([^:\s,]+::[^\(]+\([^\)]*\))\)*\s\}\}/umU";
         $pattern_conditions                     = "/\{\{\s([^\?]+)\?+\s([^:\s,]+::[^\(]+\([^\)]*\))\)*\s\}\}/umU";
         $pattern_conditions_inline_with_method  = "/\{\{\sif\(([^,]+),([^,]+),([^:\s,]+::[^\(]+\([^\)]*\))\)\s\}\}/umU";
-
-        $content_processed  = preg_replace_callback($pattern_single_helpers,'self::replace_helper',$content_processed);
+        
         $content_processed  = preg_replace_callback($pattern_conditions,'self::replace_inline_condition',$content_processed);
         $content_processed  = preg_replace_callback($pattern_conditions_inline_with_method,'self::replace_blitz_inline_conditions',$content_processed);
+        $content_processed  = preg_replace_callback($pattern_single_helpers,'self::replace_helper',$content_processed);
 
         $csrf_replace       = '<input type="hidden" name="_token" value="{{ csrf_token() }}" />';
         $content_processed  = str_replace('<!-- @csrf -->',$csrf_replace,$content_processed);
@@ -410,13 +419,24 @@ class BlitzTemplateCompiler
             if ( !in_array($class,['php','this']) ) {
                 $qualifiedClass = self::getFullQualifiedClass($class);
                 if ($qualifiedClass !== '') {
-                    $output = str_replace($class . '::' . $method, $qualifiedClass . '::' . $method, $where_replace);
+                    $helperCode = $qualifiedClass . '::' . $method;
+                    $output     = str_replace($callable, $helperCode, $where_replace);
+                    self::addToCallableStack($helperCode);
                 }
             } else {
                 $output = str_replace($class . '::' . $method, $class . '::' . $method, $where_replace);
             }
         }
         return $output;
+    }
+
+    protected static function addToCallableStack (string $code):void
+    {
+        $code_key = md5($code);
+        if ( !isset(self::$callableHelpers[self::$current_file][$code_key]) ) {
+            self::$callableHelpers[self::$current_file][$code_key] = [];
+        }
+        self::$callableHelpers[self::$current_file][$code_key][]   = $code;
     }
 
     protected static function getFullQualifiedClass (string $class):string
