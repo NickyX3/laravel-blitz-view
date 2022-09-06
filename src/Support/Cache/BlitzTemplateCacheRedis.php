@@ -13,6 +13,7 @@ class BlitzTemplateCacheRedis implements BlitzTemplateCacheInterface
     protected array                 $compiled;
     protected static string         $compiled_folder;
     protected static string         $compiled_path;
+    protected static array          $callbacks          = [];
     protected static string         $parent_separator = '<!-- ### PARENTS ### -->';
 
     public function __construct(string $template_file_path)
@@ -44,6 +45,9 @@ class BlitzTemplateCacheRedis implements BlitzTemplateCacheInterface
             $this->compiled = $cachedData;
             $cache_valid    = $this->reValidateCache($this->compiled['parents']);
             if ($cache_valid) {
+                if ( isset($cachedData['callbacks']) ) {
+                    self::$callbacks = $cachedData['callbacks'];
+                }
                 return $this->compiled['content'];
             }
         }
@@ -52,13 +56,19 @@ class BlitzTemplateCacheRedis implements BlitzTemplateCacheInterface
         return false;
     }
 
-    public function setTemplateCache(string $content, array $templates_tree=[]): int|bool
+    public function setTemplateCache(string $content, array $templates_tree=[],array $callbacks=[]): int|bool
     {
         $dataToStore = ['content'=>$content,'mTime'=>time()];
         if ( isset($templates_tree[$this->source_file_path]['parents']) ) {
             $dataToStore['parents'] = implode(self::$parent_separator,$templates_tree[$this->source_file_path]['parents']);
         }
+        $dataToStore['callbacks'] = json_encode($callbacks);
         return Redis::hMSet($this->compiled_file_path,$dataToStore);
+    }
+
+    public function getCallbacks ():array
+    {
+        return self::$callbacks;
     }
 
     protected function getFromCache ():array|false
@@ -75,6 +85,9 @@ class BlitzTemplateCacheRedis implements BlitzTemplateCacheInterface
                 }
             } else {
                 $result['parents'] = [];
+            }
+            if ( isset($cachedData['callbacks']) && $callbacks = json_decode($cachedData['callbacks'],true) ) {
+                $result['callbacks']    = $callbacks;
             }
             return $result;
         } else {

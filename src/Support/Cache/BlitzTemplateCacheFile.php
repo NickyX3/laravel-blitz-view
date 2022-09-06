@@ -14,7 +14,9 @@ class BlitzTemplateCacheFile implements BlitzTemplateCacheInterface
     protected File                  $compiled;
     protected static string         $compiled_folder;
     protected static string         $compiled_path;
-    protected static string         $parent_separator = '<!-- ### PARENTS ### -->';
+    protected static array          $callbacks          = [];
+    protected static string         $parts_separator    = '<!-- ### PARTS ### -->';
+    protected static string         $parent_separator   = '<!-- ### PARENTS ### -->';
 
     public function __construct(string $template_file_path)
     {
@@ -37,6 +39,9 @@ class BlitzTemplateCacheFile implements BlitzTemplateCacheInterface
         if ( $cachedData !== false ) {
             $cache_valid = $this->reValidateCache($cachedData['parents']);
             if ($cache_valid) {
+                if ( isset($cachedData['callbacks']) ) {
+                    self::$callbacks = $cachedData['callbacks'];
+                }
                 return $cachedData['content'];
             }
         }
@@ -45,11 +50,12 @@ class BlitzTemplateCacheFile implements BlitzTemplateCacheInterface
         return false;
     }
 
-    public function setTemplateCache(string $content, array $templates_tree=[]): int|bool
+    public function setTemplateCache(string $content, array $templates_tree=[],array $callbacks=[]): int|bool
     {
         if ( $this->makeTargetDirectory($this->compiled) ) {
             if ( isset($templates_tree[$this->source_file_path]['parents']) ) {
-                $content = $content.self::$parent_separator.implode(self::$parent_separator,$templates_tree[$this->source_file_path]['parents']);
+                $content = $content.self::$parts_separator.implode(self::$parent_separator,$templates_tree[$this->source_file_path]['parents']);
+                $content = $content.self::$parts_separator.json_encode($callbacks);
             }
             return file_put_contents($this->compiled_file_path,$content);
         } else {
@@ -57,12 +63,17 @@ class BlitzTemplateCacheFile implements BlitzTemplateCacheInterface
         }
     }
 
+    public function getCallbacks ():array
+    {
+        return self::$callbacks;
+    }
+
     protected function getFromCache ():array|false
     {
         if ( $this->isExist() ) {
             $result              = [];
             $cached_file_content = $this->compiled->getContent();
-            $exploded            = explode(self::$parent_separator, $cached_file_content, 2);
+            $exploded            = explode(self::$parts_separator, $cached_file_content, 3);
             $result['content']   = $exploded[0];
             if ( isset($exploded[1]) ) {
                 $parents = explode(self::$parent_separator,$exploded[1]);
@@ -73,6 +84,9 @@ class BlitzTemplateCacheFile implements BlitzTemplateCacheInterface
                 }
             } else {
                 $result['parents'] = [];
+            }
+            if ( isset($exploded[2]) && $callbacks = json_decode($exploded[2],true) ) {
+                $result['callbacks']    = $callbacks;
             }
             return $result;
         } else {

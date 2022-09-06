@@ -13,7 +13,6 @@ class BlitzTemplateCompiler
     protected static array  $templates_tree;
     protected static array  $templates;
     protected static array  $namespace_finder;
-    protected static array  $conditions_callbacks = [];
     protected static array  $callableHelpers      = [];
     protected static string $cacheClass;
     protected static bool   $cacheEnabled;
@@ -29,39 +28,43 @@ class BlitzTemplateCompiler
         self::$cacheEnabled     = config('blitz.cache_enabled',false);
         self::$templates_path   = resource_path() . '/' . self::$templates_folder . '/';
 
-        self::$cacheClass       = self::getCacheClass();
+        self::$current_file     = $template_file_path;
 
-        $source     = new File($template_file_path, false);
-        $compiled   = new self::$cacheClass($template_file_path);
-
-        self::$current_file = $template_file_path;
-
-        $cached_template    = $compiled->getTemplateContent();
-        if ( $cached_template !== false ) {
-            self::$statistic['from_cache']++;
-            // process Helpers need for autoload
-            return self::processHelpers($cached_template);
-        } else {
-            // recompile source
-            self::$statistic['compiled']++;
-            $compiled_template = self::getCompiled($source);
-            if ( self::$cacheEnabled === true ) {
-                $compiled->setTemplateCache($compiled_template, self::$templates_tree);
+        if ( self::$cacheEnabled === true ) {
+            // cache enabled
+            self::$cacheClass   = self::getCacheClass();
+            $compiled           = new self::$cacheClass(self::$current_file);
+            $cached_template    = $compiled->getTemplateContent();
+            // in cache
+            if ( $cached_template !== false ) {
+                // increase statistic
+                self::$statistic['from_cache']++;
+                // callbacks set
+                self::$callableHelpers[self::$current_file] = $compiled->getCallbacks();
+                // process helpers for autoload
+                $cached_template    = self::processHelpers($cached_template);
+                // return template
+                return $cached_template;
             }
-            return $compiled_template;
         }
+        // source file
+        $source     = new File(self::$current_file, false);
+        // increase statistic
+        self::$statistic['compiled']++;
+        // recompile source
+        $compiled_template = self::getCompiled($source);
+        // check cache enabled
+        if ( self::$cacheEnabled === true ) {
+            // get callbacks
+            $callbacks  = self::getCallbacks(self::$current_file);
+            // set ti cache
+            $compiled->setTemplateCache($compiled_template, self::$templates_tree, $callbacks);
+        }
+        return $compiled_template;
     }
 
-    public static function getConditionsCallbacks (string $template_file_path):array {
-        if ( isset(self::$callableHelpers[$template_file_path]) ) {
-            foreach (self::$callableHelpers[$template_file_path] as $code_key=>$callableHelpers) {
-                if ( !isset(self::$conditions_callbacks[$template_file_path][$code_key]) && count($callableHelpers) > 1 ) {
-                    // add to callbacks
-                    self::$conditions_callbacks[$template_file_path][$code_key] = $callableHelpers[0];
-                }
-            }
-        }
-        return self::$conditions_callbacks[$template_file_path];
+    public static function getCallbacks (string $template_file_path):array {
+        return self::$callableHelpers[$template_file_path];
     }
 
     public static function getStatistic ():array
@@ -323,15 +326,14 @@ class BlitzTemplateCompiler
                     if (!in_array($class, ['php', 'this'])) {
                         $qualifiedClass = self::getFullQualifiedClass($class);
                         if ($qualifiedClass !== '') {
-                            $fullCode = str_replace($class . '::' . $method, $qualifiedClass . '::' . $method, $fullCode);
+                            $qualifiedCode  = $qualifiedClass . '::' . $method;
+                            $fullCode       = str_replace($callable, $qualifiedCode, $fullCode);
                         }
                     }
                 }
                 $code       = '('.$fullCode.')';
                 $output     = str_replace( $match[1],$code,$output);
-
-                $code_key   = md5($code);
-                self::$conditions_callbacks[self::$current_file][$code_key] = $code;
+                self::addToCallableStack($code);
             }
         }
 
@@ -352,10 +354,9 @@ class BlitzTemplateCompiler
             if ( !in_array($class,['php','this']) ) {
                 $qualifiedClass = self::getFullQualifiedClass($class);
                 if ($qualifiedClass !== '') {
-                    $output     = str_replace($class . '::' . $method, $qualifiedClass . '::' . $method, $where_replace);
                     $code       = $qualifiedClass . '::' . $method;
-                    $code_key   = md5($code);
-                    self::$conditions_callbacks[self::$current_file][$code_key] = $code;
+                    $output     = str_replace($callable, $code, $where_replace);
+                    self::addToCallableStack($code);
                 }
             } else {
                 $output = str_replace($class . '::' . $method, $class . '::' . $method, $where_replace);
@@ -373,7 +374,7 @@ class BlitzTemplateCompiler
         $pattern_single_helpers                 = "/\{\{\s([^:\s,]+::[^\(]+\([^\)]*\))\)*\s\}\}/umU";
         $pattern_conditions                     = "/\{\{\s([^\?]+)\?+\s([^:\s,]+::[^\(]+\([^\)]*\))\)*\s\}\}/umU";
         $pattern_conditions_inline_with_method  = "/\{\{\sif\(([^,]+),([^,]+),([^:\s,]+::[^\(]+\([^\)]*\))\)\s\}\}/umU";
-        
+
         $content_processed  = preg_replace_callback($pattern_conditions,'self::replace_inline_condition',$content_processed);
         $content_processed  = preg_replace_callback($pattern_conditions_inline_with_method,'self::replace_blitz_inline_conditions',$content_processed);
         $content_processed  = preg_replace_callback($pattern_single_helpers,'self::replace_helper',$content_processed);
@@ -433,10 +434,7 @@ class BlitzTemplateCompiler
     protected static function addToCallableStack (string $code):void
     {
         $code_key = md5($code);
-        if ( !isset(self::$callableHelpers[self::$current_file][$code_key]) ) {
-            self::$callableHelpers[self::$current_file][$code_key] = [];
-        }
-        self::$callableHelpers[self::$current_file][$code_key][]   = $code;
+        self::$callableHelpers[self::$current_file][$code_key] = $code;
     }
 
     protected static function getFullQualifiedClass (string $class):string

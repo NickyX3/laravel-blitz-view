@@ -132,7 +132,12 @@ class BlitzMaker
     protected static function injectConditionCallbacks ():void
     {
         $callbacks = BlitzTemplateLoader::getCC(self::$template_name);
-        foreach ($callbacks as $var_name=>$callback_code) {
+        foreach ($callbacks as $var_name=>$callback_codes) {
+            if ( is_array($callback_codes) && count($callback_codes) > 0 ) {
+                $callback_code = $callback_codes[0];
+            } else {
+                $callback_code = $callback_codes;
+            }
             self::$template_content = str_replace($callback_code,'$callback_'.$var_name,self::$template_content);
             self::$data['callback_'.$var_name] =  eval("return $callback_code;");
         }
