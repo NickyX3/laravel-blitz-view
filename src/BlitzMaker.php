@@ -56,9 +56,6 @@ class BlitzMaker
     {
         self::$template_name        = $template;
         self::$data                 = $data;
-        self::$template_content     = BlitzTemplateLoader::load(self::$template_name);
-
-        self::injectConditionCallbacks();
 
         $callbackException = function ($error_code, $error_message) {
             $template_content   = BlitzMaker::getTemplateContent();
@@ -69,10 +66,21 @@ class BlitzMaker
         };
 
         set_error_handler($callbackException, E_ERROR|E_WARNING);
-        $this->blitzObject  = new \Blitz();
-        $this->blitzObject->load(self::$template_content);
+
+        if ( self::$template_content === '' ) {
+            // template content not loaded, load
+            self::$template_content = BlitzTemplateLoader::load(self::$template_name);
+            self::injectConditionCallbacks();
+        }
+        if ( !isset($this->blitzObject) ) {
+            // Blitz Object not maked, make new and load template content
+            $this->blitzObject  = new \Blitz();
+            $this->blitzObject->load(self::$template_content);
+        }
+        // parse data
         $parsed_content = $this->blitzObject->parse(self::$data);
         self::$rendered = $parsed_content;
+
         restore_error_handler();
 
         self::$response = new Response(self::$rendered);
