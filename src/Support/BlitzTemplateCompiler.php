@@ -294,6 +294,41 @@ class BlitzTemplateCompiler
         return '';
     }
 
+    protected static function processGrouppedCallbacks (string $content):string
+    {
+        $pattern = "/\{\{\s((?:[^\(\)\s]+\(\)[^\}]+)+)\s\}\}/umU";
+        return preg_replace_callback($pattern,'self::replace_groupped_callback',$content);
+    }
+
+    protected static function replace_groupped_callback ( array $match):string
+    {
+        $output = '';
+        if ( count($match) === 2 ) {
+            $output     = $match[0];
+            $fullCode   = $match[1];
+            $callback_pattern = "/([^:\s]+::\w+\([^\)]*\))/umU";
+            preg_match_all($callback_pattern, $match[0], $cmatches);
+            if (count($cmatches[0]) > 0) {
+                foreach ($cmatches[0] as $callable) {
+                    [$class, $method] = explode('::', $callable, 2);
+                    if (!in_array($class, ['php', 'this'])) {
+                        $qualifiedClass = self::getFullQualifiedClass($class);
+                        if ($qualifiedClass !== '') {
+                            $fullCode = str_replace($class . '::' . $method, $qualifiedClass . '::' . $method, $fullCode);
+                        }
+                    }
+                }
+                $code       = '('.$fullCode.')';
+                $output     = str_replace( $match[1],$code,$output);
+
+                $code_key   = md5($code);
+                self::$conditions_callbacks[self::$current_file][$code_key] = $code;
+            }
+        }
+
+        return $output;
+    }
+
     protected static function processConditionCallbacks (string $content):string {
         $pattern = "/\{\{\sIF\s([^:\s]+::[^\(]+\([^\)]*\))[^\}]+\}\}/umU";
         return preg_replace_callback($pattern,'self::replace_condition_callback',$content);
@@ -322,12 +357,15 @@ class BlitzTemplateCompiler
 
     protected static function processHelpers (string $content):string
     {
+        $content_processed  = $content;
+        $content_processed  = self::processGrouppedCallbacks($content_processed);
+        $content_processed  = self::processConditionCallbacks($content_processed);
         // patterns
-        $pattern_classes                        = "/\{\{.*([^:\s,]+::[^\(]+\([^\)]*\))\)*\s\}\}/umU";
+        $pattern_single_helpers                 = "/\{\{\s([^:\s,]+::[^\(]+\([^\)]*\))\)*\s\}\}/umU";
         $pattern_conditions                     = "/\{\{\s([^\?]+)\?+\s([^:\s,]+::[^\(]+\([^\)]*\))\)*\s\}\}/umU";
         $pattern_conditions_inline_with_method  = "/\{\{\sif\(([^,]+),([^,]+),([^:\s,]+::[^\(]+\([^\)]*\))\)\s\}\}/umU";
 
-        $content_processed  = preg_replace_callback($pattern_classes,'self::replace_helper',$content);
+        $content_processed  = preg_replace_callback($pattern_single_helpers,'self::replace_helper',$content_processed);
         $content_processed  = preg_replace_callback($pattern_conditions,'self::replace_inline_condition',$content_processed);
         $content_processed  = preg_replace_callback($pattern_conditions_inline_with_method,'self::replace_blitz_inline_conditions',$content_processed);
 
@@ -335,7 +373,7 @@ class BlitzTemplateCompiler
         $content_processed  = str_replace('<!-- @csrf -->',$csrf_replace,$content_processed);
         $content_processed  = str_replace('@csrf',$csrf_replace,$content_processed);
 
-        return self::processConditionCallbacks($content_processed);
+        return $content_processed;
     }
 
     protected static function replace_blitz_inline_conditions (array $match):string
