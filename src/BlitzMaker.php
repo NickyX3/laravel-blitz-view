@@ -70,8 +70,8 @@ class BlitzMaker
         if ( self::$template_content === '' ) {
             // template content not loaded, load
             self::$template_content = BlitzTemplateLoader::load(self::$template_name);
-            self::injectConditionCallbacks();
         }
+        self::injectConditionCallbacks();
         if ( !isset($this->blitzObject) ) {
             // Blitz Object not maked, make new and load template content
             $this->blitzObject  = new \Blitz();
